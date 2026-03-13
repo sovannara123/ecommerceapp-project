@@ -12,6 +12,27 @@ MongoDB replica set initialization is automated in Docker so transactions work w
 Server: http://localhost:8080  
 Swagger UI: http://localhost:8080/docs
 
+## Staging (Docker)
+From repo root:
+```bash
+cp server/.env.staging.example server/.env.staging
+docker compose -f docker-compose.staging.yml up --build -d
+```
+
+Staging server:
+- API: http://localhost:8081
+- Swagger: http://localhost:8081/docs
+
+Run staging smoke test:
+```bash
+bash scripts/staging-smoke.sh
+```
+
+Seed staging data:
+```bash
+docker compose -f docker-compose.staging.yml exec server-staging npm run seed
+```
+
 ## Observability
 - `GET /metrics` exposes Prometheus metrics.
 - Set `LOG_LEVEL` (`trace|debug|info|warn|error|fatal|silent`) to control pino log verbosity.

@@ -16,6 +16,19 @@ if (hasReleaseSigning) {
     }
 }
 
+val versionProperties = Properties()
+val versionPropertiesFile = rootProject.file("version.properties")
+if (versionPropertiesFile.exists()) {
+    versionPropertiesFile.inputStream().use { stream ->
+        versionProperties.load(stream)
+    }
+}
+
+val appVersionCode = versionProperties.getProperty("VERSION_CODE")?.toIntOrNull()
+    ?: flutter.versionCode
+val appVersionName = versionProperties.getProperty("VERSION_NAME")
+    ?: flutter.versionName
+
 android {
     namespace = "com.northstar.ecommerce_mobile"
     compileSdk = flutter.compileSdkVersion
@@ -36,8 +49,9 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        multiDexEnabled = true
+        versionCode = appVersionCode
+        versionName = appVersionName
     }
 
     signingConfigs {
@@ -53,6 +67,12 @@ android {
 
     buildTypes {
         release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             } else if (gradle.startParameter.taskNames.any {

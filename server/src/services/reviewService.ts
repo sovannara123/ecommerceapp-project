@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { reviewRepo } from "../repositories/reviewRepo.js";
 import { orderRepo } from "../repositories/orderRepo.js";
 import { productRepo } from "../repositories/productRepo.js";

@@ -45,5 +45,18 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera is used to scan payment QR codes and upload photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access is used to upload your profile picture.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location is used to show nearby restaurants and improve delivery accuracy.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This identifier helps us personalize your experience and measure ad performance.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

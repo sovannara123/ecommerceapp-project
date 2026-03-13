@@ -48,6 +48,12 @@ class AuthRemoteDataSource {
         'email': normalizedEmail,
         'password': password,
       },
+      options: Options(
+        extra: {
+          // Safe to retry transport-level failures for login.
+          'retryable': true,
+        },
+      ),
     );
 
     final envelope = ApiEnvelope<Map<String, dynamic>>.fromJson(

@@ -34,7 +34,8 @@ export const authController = {
       path: "/api/auth/refresh",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    const { refreshToken, ...response } = out;
+    const response = { ...out };
+    delete response.refreshToken;
     res.json(ok(response));
   },
   async refresh(req: Request, res: Response) {
@@ -54,7 +55,8 @@ export const authController = {
       path: "/api/auth/refresh",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    const { refreshToken: _nextRefreshToken, ...response } = out;
+    const response = { ...out };
+    delete response.refreshToken;
     res.json(ok(response));
   },
   async refreshToken(req: Request, res: Response, next: NextFunction) {
@@ -81,7 +83,8 @@ export const authController = {
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
-      const { refreshToken: _nextRefreshToken, ...response } = out;
+      const response = { ...out };
+      delete response.refreshToken;
       res.json(ok(response));
     } catch (error) {
       next(error);

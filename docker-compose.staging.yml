@@ -1,14 +1,14 @@
 services:
-  mongo:
+  mongo-staging:
     image: mongo:7
-    container_name: ecommerce_mongo
+    container_name: ecommerce_mongo_staging
     environment:
-      MONGO_RS_HOST: mongo:27017
-    ports:
-      - "27017:27017"
+      MONGO_RS_HOST: mongo-staging:27017
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27018:27017"
     volumes:
-      - mongo_data:/data/db
+      - mongo_staging_data:/data/db
       - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     healthcheck:
       test: ["CMD-SHELL", "mongosh --quiet --eval \"try{st=rs.status(); st.ok && st.myState==1 ? 0 : 1}catch(e){1}\""]
@@ -16,49 +16,41 @@ services:
       timeout: 5s
       retries: 20
 
-  redis:
+  redis-staging:
     image: redis:7-alpine
-    container_name: ecommerce_redis
+    container_name: ecommerce_redis_staging
     ports:
-      - "6379:6379"
+      - "6380:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - redis_data:/data
+      - redis_staging_data:/data
 
-  server:
+  server-staging:
     build: ./server
-    container_name: ecommerce_server
+    container_name: ecommerce_server_staging
     env_file:
-      - ./server/.env
+      - ./server/.env.staging
     environment:
       ENV_FILE: /app/.env
-      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017/ecommerce}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-    ports:
-      - "8080:8080"
-    depends_on:
-      mongo:
-        condition: service_healthy
-      redis:
-        condition: service_started
+      NODE_ENV: ${NODE_ENV:-staging}
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo-staging:27017/ecommerce_staging}
+      REDIS_URL: ${REDIS_URL:-redis://redis-staging:6379}
+      PORT: ${PORT:-8080}
     volumes:
-      - ./server/.env:/app/.env:ro
+      - ./server/.env.staging:/app/.env:ro
+    ports:
+      - "8081:8080"
+    depends_on:
+      mongo-staging:
+        condition: service_healthy
+      redis-staging:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 15s
       timeout: 5s
       retries: 5
 
-  admin:
-    build: ./admin
-    container_name: ecommerce_admin
-    environment:
-      - VITE_API_BASE_URL=http://localhost:8080/api
-    ports:
-      - "5173:5173"
-    depends_on:
-      - server
-
 volumes:
-  mongo_data:
-  redis_data:
+  mongo_staging_data:
+  redis_staging_data:

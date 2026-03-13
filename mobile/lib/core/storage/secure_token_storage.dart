@@ -16,7 +16,8 @@ class SecureTokenStorage {
     // Migration path from legacy keys used by the previous auth stack.
     final legacy = await _storage.read(key: AppConstants.legacyAccessTokenKey);
     if (legacy != null && legacy.isNotEmpty) {
-      await _storage.write(key: AppConstants.secureAccessTokenKey, value: legacy);
+      await _storage.write(
+          key: AppConstants.secureAccessTokenKey, value: legacy);
       await _storage.delete(key: AppConstants.legacyAccessTokenKey);
     }
     return legacy;
@@ -31,17 +32,35 @@ class SecureTokenStorage {
     // Migration path from legacy keys used by the previous auth stack.
     final legacy = await _storage.read(key: AppConstants.legacyRefreshTokenKey);
     if (legacy != null && legacy.isNotEmpty) {
-      await _storage.write(key: AppConstants.secureRefreshTokenKey, value: legacy);
+      await _storage.write(
+          key: AppConstants.secureRefreshTokenKey, value: legacy);
       await _storage.delete(key: AppConstants.legacyRefreshTokenKey);
     }
     return legacy;
   }
 
-  Future<void> saveTokens({required String accessToken, required String refreshToken}) async {
+  Future<void> saveTokens(
+      {required String accessToken, required String refreshToken}) async {
     await Future.wait([
-      _storage.write(key: AppConstants.secureAccessTokenKey, value: accessToken),
-      _storage.write(key: AppConstants.secureRefreshTokenKey, value: refreshToken),
+      _storage.write(
+          key: AppConstants.secureAccessTokenKey, value: accessToken),
+      _storage.write(
+          key: AppConstants.secureRefreshTokenKey, value: refreshToken),
     ]);
+  }
+
+  Future<void> saveRememberedEmail(String email) async {
+    await _storage.write(
+      key: AppConstants.secureRememberedEmailKey,
+      value: email,
+    );
+  }
+
+  Future<String?> readRememberedEmail() async {
+    final email =
+        await _storage.read(key: AppConstants.secureRememberedEmailKey);
+    if (email == null || email.isEmpty) return null;
+    return email;
   }
 
   Future<void> clear() async {

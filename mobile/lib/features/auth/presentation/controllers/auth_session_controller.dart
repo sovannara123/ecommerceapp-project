@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/cache/offline_queue_service.dart';
+import '../../../../core/errors/app_failure.dart';
 import '../../../../core/network/dio_provider.dart';
 import '../../../../core/sync/sync_service.dart';
 import '../../../../core/utils/result.dart';
@@ -81,6 +82,48 @@ class AuthSessionController extends AsyncNotifier<AuthSession> {
     );
   }
 
+  Future<Result<void>> restoreFromSecureSession() async {
+    final session = ref.read(authSessionCoordinatorProvider);
+    await session.hydrate();
+
+    if (!session.isAuthenticated) {
+      return const Failure<void>(
+        AppFailure(
+          type: AppFailureType.unauthorized,
+          message: 'No saved session found. Please sign in.',
+          code: 'SESSION_NOT_FOUND',
+        ),
+      );
+    }
+
+    final refreshedToken = await session.refreshIfNeeded();
+    if (refreshedToken == null ||
+        session.accessToken == null ||
+        session.refreshToken == null) {
+      return const Failure<void>(
+        AppFailure(
+          type: AppFailureType.unauthorized,
+          message: 'Saved session has expired. Please sign in again.',
+          code: 'SESSION_EXPIRED',
+        ),
+      );
+    }
+
+    final current = state.valueOrNull;
+    state = AsyncData(
+      AuthSession(
+        initialized: true,
+        isAuthenticated: true,
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+        userEmail: current?.userEmail,
+        userName: current?.userName,
+        userRole: current?.userRole,
+      ),
+    );
+    return const Success<void>(null);
+  }
+
   /// Logs out the user and invalidates ALL feature-level state so no
   /// data from the previous session leaks into the next one.
   Future<Result<void>> logout() async {
@@ -97,9 +140,9 @@ class AuthSessionController extends AsyncNotifier<AuthSession> {
     ref.invalidate(cartControllerProvider);
     ref.invalidate(checkoutControllerProvider);
     ref.invalidate(ordersControllerProvider);
-    // TODO: uncomment when provider is created
+    // Enable when wishlist provider is introduced.
     // ref.invalidate(wishlistControllerProvider);
-    // TODO: uncomment when provider is created
+    // Enable when notification provider is introduced.
     // ref.invalidate(notificationControllerProvider);
     ref.invalidate(syncServiceProvider);
     ref.invalidate(offlineQueueServiceProvider);

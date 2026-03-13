@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 
 class BiometricService {
@@ -25,7 +26,8 @@ class BiometricService {
   }
 
   /// Authenticate using biometrics
-  Future<bool> authenticate({String reason = 'Verify your identity to continue'}) async {
+  Future<bool> authenticate(
+      {String reason = 'Verify your identity to continue'}) async {
     try {
       return await _auth.authenticate(
         localizedReason: reason,
@@ -37,7 +39,7 @@ class BiometricService {
       );
     } on PlatformException catch (e) {
       // Log error if logger is available
-      print('[Biometric] Auth failed: ${e.message}');
+      debugPrint('[Biometric] Auth failed: ${e.message}');
       return false;
     }
   }

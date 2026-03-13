@@ -4,13 +4,13 @@ Flutter mobile app for ecommerce built on `lib/app + lib/core + lib/features`.
 
 ## Environment Configuration
 
-Set backend URL with `--dart-define`:
+Set environment with `--dart-define`:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=https://api-staging.example.com/api
+flutter run --dart-define=ENV=staging --dart-define=STAGING_API_URL=https://api-staging.example.com/api
 ```
 
-Release builds require `API_BASE_URL` and reject localhost values at runtime.
+Release builds reject localhost and non-HTTPS API URLs at runtime.
 
 ## Android Release Signing
 
@@ -36,19 +36,24 @@ Release builds fail fast if signing is missing.
 Debug:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=http://localhost:8080/api
+flutter run --dart-define=ENV=dev
+```
+
+Staging (local Docker staging backend):
+```bash
+flutter run --dart-define=ENV=staging --dart-define=STAGING_API_URL=http://localhost:8081/api
 ```
 
 Android release:
 
 ```bash
-flutter build appbundle --release --dart-define=API_BASE_URL=https://api.example.com/api
+flutter build appbundle --release --dart-define=ENV=prod --dart-define=API_URL=https://api.example.com/api
 ```
 
 iOS release:
 
 ```bash
-flutter build ios --release --dart-define=API_BASE_URL=https://api.example.com/api
+flutter build ios --release --dart-define=ENV=prod --dart-define=API_URL=https://api.example.com/api
 ```
 
 ## iOS Provisioning Setup

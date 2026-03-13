@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/providers.dart';
+import '../constants/app_constants.dart';
 import '../storage/device_id_store.dart';
 import '../storage/secure_token_storage.dart';
 import '../utils/result.dart';
@@ -16,6 +17,21 @@ import 'interceptors/cache_interceptor.dart';
 import 'interceptors/connectivity_interceptor.dart';
 import 'interceptors/error_interceptor.dart';
 import 'interceptors/retry_interceptor.dart';
+
+List<String> _loadPinnedFingerprints() {
+  const pins = String.fromEnvironment('API_CERT_PINS', defaultValue: '');
+  if (pins.trim().isEmpty) {
+    return const [];
+  }
+  final values = <String>[];
+  for (final part in pins.split(',')) {
+    final value = part.trim();
+    if (value.isNotEmpty) {
+      values.add(value);
+    }
+  }
+  return List.unmodifiable(values);
+}
 
 void _configureCertificatePinning(Dio dio) {
   // === TLS Certificate Pinning (production only) ===
@@ -29,11 +45,7 @@ void _configureCertificatePinning(Dio dio) {
     //     | base64
     //
     // IMPORTANT: Include at least 2 pins — primary and backup (from next certificate).
-    const pinnedFingerprints = <String>[
-      // TODO: Replace with your actual certificate public key SHA-256 pins
-      // 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', // Primary
-      // 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=', // Backup
-    ];
+    final pinnedFingerprints = _loadPinnedFingerprints();
 
     // ┌──────────────────────────────────────────────────────────────┐
     // │  BEFORE PRODUCTION LAUNCH:                                   │
@@ -82,8 +94,10 @@ final authSessionCoordinatorProvider = Provider<AuthSessionCoordinator>((ref) {
   final refreshDio = Dio(
     BaseOptions(
       baseUrl: config.apiBaseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
+      connectTimeout:
+          const Duration(milliseconds: AppConstants.connectTimeoutMs),
+      receiveTimeout:
+          const Duration(milliseconds: AppConstants.receiveTimeoutMs),
       contentType: Headers.jsonContentType,
       headers: {
         'Accept': 'application/json',
@@ -108,8 +122,10 @@ final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl: config.apiBaseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
+      connectTimeout:
+          const Duration(milliseconds: AppConstants.connectTimeoutMs),
+      receiveTimeout:
+          const Duration(milliseconds: AppConstants.receiveTimeoutMs),
       contentType: Headers.jsonContentType,
       responseType: ResponseType.json,
       headers: {

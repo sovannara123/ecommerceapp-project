@@ -12,6 +12,40 @@ MongoDB replica set initialization is automated in Docker so transactions work w
 - Swagger: http://localhost:8080/docs
 - Admin: http://localhost:5173
 
+## Staging Environment (production-like)
+
+1. Bootstrap staging env file:
+```bash
+cp server/.env.staging.example server/.env.staging
+```
+
+2. Start isolated staging stack:
+```bash
+docker compose -f docker-compose.staging.yml up --build -d
+```
+
+3. Seed staging data:
+```bash
+docker compose -f docker-compose.staging.yml exec server-staging npm run seed
+```
+
+4. Run staging smoke test (auth/cart/checkout/payment intent):
+```bash
+bash scripts/staging-smoke.sh
+```
+
+Staging endpoints:
+- API: http://localhost:8081
+- Health: http://localhost:8081/health
+
+Flutter staging run:
+```bash
+cd mobile
+flutter run \
+  --dart-define=ENV=staging \
+  --dart-define=STAGING_API_URL=http://localhost:8081/api
+```
+
 Observability:
 - Metrics endpoint: `GET /metrics` (Prometheus format)
 - Set `LOG_LEVEL` in `server/.env` to control backend log verbosity
@@ -36,7 +70,7 @@ Demo users:
 Open `/mobile` with Flutter and run:
 ```bash
 flutter pub get
-flutter run --dart-define=API_BASE_URL=http://localhost:8080/api
+flutter run --dart-define=ENV=dev
 ```
 
 > On physical device, replace localhost with your machine IP.
@@ -86,3 +120,4 @@ pre-commit install
 # Run on all files (first time)
 pre-commit run --all-files
 ```
+a3f60d8ef06025e26c905f6c6acd3415

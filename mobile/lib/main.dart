@@ -7,9 +7,12 @@ import 'app/app.dart';
 import 'core/config/app_config.dart';
 import 'core/config/providers.dart';
 import 'core/security/device_integrity.dart';
+import 'core/services/firebase_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await FirebaseService.initialize();
+  await FirebaseService.initMessaging();
 
   // Check device integrity
   final isCompromised = await DeviceIntegrity.isCompromised();

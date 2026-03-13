@@ -1,10 +1,23 @@
+import dotenv from "dotenv";
+import fs from "node:fs";
+import path from "node:path";
 import { z } from "zod";
+
+// Load .env as early as possible so ESM import ordering never parses config
+// before environment variables are hydrated.
+const rawEnvFilePath = process.env.ENV_FILE?.trim() || ".env";
+const envFilePath = path.isAbsolute(rawEnvFilePath)
+  ? rawEnvFilePath
+  : path.resolve(process.cwd(), rawEnvFilePath);
+const envFileExists = fs.existsSync(envFilePath);
+dotenv.config({ path: envFilePath });
 
 function strongSecret() {
   return z
     .string()
     .min(16, "secret too short")
-    .refine((v) => !/^change_me_/i.test(v), "secret uses placeholder value");
+    .refine((v) => !/^change_me_/i.test(v), "secret uses placeholder value")
+    .refine((v) => !/^replace_with_/i.test(v), "secret uses placeholder value");
 }
 
 function envBoolean(defaultValue: boolean) {
@@ -21,7 +34,7 @@ function envBoolean(defaultValue: boolean) {
 
 const envSchema = z
   .object({
-    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    NODE_ENV: z.enum(["development", "test", "staging", "production"]).default("development"),
     LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal", "silent"]).default("info"),
     PORT: z.coerce.number().int().positive().default(8080),
     CORS_ORIGIN: z.string().default("http://localhost:5173"),
@@ -74,7 +87,44 @@ const envSchema = z
     }
   });
 
-const parsed = envSchema.parse(process.env);
+const parsedResult = envSchema.safeParse(process.env);
+if (!parsedResult.success) {
+  const missing = new Set<string>();
+  const invalid = new Set<string>();
+
+  for (const issue of parsedResult.error.issues) {
+    const key = String(issue.path[0] ?? "");
+    if (!key) continue;
+
+    if (
+      issue.code === z.ZodIssueCode.invalid_type &&
+      (issue as unknown as { received?: string }).received === "undefined"
+    ) {
+      missing.add(key);
+      continue;
+    }
+    invalid.add(`${key}: ${issue.message}`);
+  }
+
+  const lines: string[] = [
+    "Invalid environment configuration.",
+    missing.size
+      ? `Missing required env vars: ${Array.from(missing).sort().join(", ")}`
+      : undefined,
+    invalid.size
+      ? `Invalid env vars: ${Array.from(invalid).sort().join(" | ")}`
+      : undefined,
+    `ENV_FILE resolved path: ${envFilePath} (${envFileExists ? "found" : "not found"})`,
+    "Load env vars via one of:",
+    "- docker compose: ensure env_file points to the backend .env and ENV_FILE=/app/.env is set",
+    "- docker run: pass --env-file server/.env (or -e KEY=VALUE)",
+    "- deployment platform: set environment variables in service settings",
+  ].filter((v): v is string => Boolean(v));
+
+  throw new Error(lines.join("\n"));
+}
+
+const parsed = parsedResult.data;
 
 export const config = {
   nodeEnv: parsed.NODE_ENV,

@@ -1,5 +1,6 @@
 // Initializes single-node replica set for transactions.
 db = db.getSiblingDB("admin");
+const replicaHost = process.env.MONGO_RS_HOST || "mongo:27017";
 let initialized = false;
 
 try {
@@ -12,9 +13,9 @@ try {
 if (!initialized) {
   rs.initiate({
     _id: "rs0",
-    members: [{ _id: 0, host: "localhost:27017" }],
+    members: [{ _id: 0, host: replicaHost }],
   });
   printjson(rs.status());
 } else {
-  print("Replica set already initialized");
+  print(`Replica set already initialized with host ${replicaHost}`);
 }

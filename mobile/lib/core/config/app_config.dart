@@ -22,11 +22,7 @@ class AppConfig {
   static String apiBaseUrlForEnvironment(AppEnvironment environment) {
     switch (environment) {
       case AppEnvironment.dev:
-        final isAndroid =
-            !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-        return isAndroid
-            ? 'http://10.0.2.2:3000/api'
-            : 'http://localhost:3000/api';
+        return 'https://ecommerceapp-project.onrender.com/api';
       case AppEnvironment.staging:
         return const String.fromEnvironment(
           'STAGING_API_URL',
@@ -40,9 +36,26 @@ class AppConfig {
     }
   }
 
+  static String _normalizeApiBaseUrl(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return trimmed;
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null) return trimmed;
+
+    // Server routes are mounted under /api. If only host is provided, normalize
+    // it to include /api to avoid silent endpoint mismatches.
+    if (uri.path.isEmpty || uri.path == '/') {
+      return uri.replace(path: '/api').toString();
+    }
+
+    return trimmed;
+  }
+
   factory AppConfig.fromEnvironment() {
     final environment = AppConfig.environment;
-    final apiBaseUrl = apiBaseUrlForEnvironment(environment).trim();
+    final apiBaseUrl =
+        _normalizeApiBaseUrl(apiBaseUrlForEnvironment(environment));
 
     if (kReleaseMode) {
       if (apiBaseUrl.isEmpty) {

@@ -32,7 +32,8 @@ class ApiErrorMapper {
           error,
           AppFailure(
             type: AppFailureType.timeout,
-            message: 'Connection timed out. Please try again.',
+            message:
+                'Connection timed out. If the server is waking up, please try again in a moment.',
             code: code,
             statusCode: status,
             requestId: requestId,

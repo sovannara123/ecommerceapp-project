@@ -64,4 +64,19 @@ yarn-error.log*
 **/lcov-report/
 
 
+# Deployment secrets
+**/*.jks
+**/*.keystore
+**/google-services.json
+**/GoogleService-Info.plist
+**/*.p8
+**/*.p12
+**/local.properties
+**/key.properties
+**/*.mobileprovision
+**/*.cer
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
 

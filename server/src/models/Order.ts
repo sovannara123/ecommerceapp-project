@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ORDER_STATUS, PAYMENT_PROVIDER, type OrderStatus } from "../constants/order.js";
+import { ORDER_STATUS, PAYMENT_PROVIDER } from "../constants/order.js";
 
 const OrderItemSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "Product" },

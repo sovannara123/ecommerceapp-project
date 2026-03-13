@@ -39,7 +39,7 @@ class RetryInterceptor extends Interceptor {
     final requestOptions = err.requestOptions;
     final retryCount = _readRetryCount(requestOptions);
 
-    if (!_isRetryableMethod(requestOptions.method) ||
+    if (!_isRetryableRequest(requestOptions) ||
         !_isRetryableError(err) ||
         retryCount >= maxRetries) {
       handler.next(err);
@@ -61,9 +61,16 @@ class RetryInterceptor extends Interceptor {
     }
   }
 
-  bool _isRetryableMethod(String method) {
-    final normalized = method.toUpperCase();
-    return normalized == 'GET' || normalized == 'HEAD';
+  bool _isRetryableRequest(RequestOptions options) {
+    final normalizedMethod = options.method.toUpperCase();
+    if (normalizedMethod == 'GET' || normalizedMethod == 'HEAD') {
+      return true;
+    }
+
+    // Allow explicitly marked non-idempotent requests to retry on transport
+    // failures (for example auth/login during transient cold starts).
+    final extraRetryable = options.extra['retryable'];
+    return extraRetryable == true;
   }
 
   bool _isRetryableError(DioException err) {
