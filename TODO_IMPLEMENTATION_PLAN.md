@@ -1,0 +1,47 @@
+# TODO_IMPLEMENTATION_PLAN.md
+
+Purpose: Production engineering plan for the backend. Priorities follow P0–P4 (blocker → portfolio). Tasks are mapped to concrete files and aligned with risks in RISK_REGISTER.md. Execution is phased to ship safely and incrementally.
+
+## RC Cleanup Update (2026-03-10)
+- Release-blocking harness issues are resolved:
+  - Jest/ESM test instability fixed by removing brittle `unstable_mockModule` paths in integration tests and using mutable dependency seams.
+  - `mongodb-memory-server` option/type drift fixed in integration and pagination suites.
+  - Shared test invoke helper hardened for logger/error-path behavior and handler typing.
+- Auth/payment hardening coverage restored:
+  - Added/updated tests for refresh-reuse, blacklist fail-closed, HIBP pass/fail/unavailable paths, logout invalidation, Stripe webhook signature/duplicate behavior, and PayWay webhook secret/idempotency behavior.
+- Email normalization is now consistent (`trim + lowercase`) across registration/login lookup and login rate-limit keying.
+- Verification: `npm run lint` and `npm test -- --runInBand` are green (21 suites, 49 tests).
+
+## Priority definitions
+P0 = Critical production blocker  
+P1 = Required before release  
+P2 = Reliability / maintainability improvement  
+P3 = Future capability  
+P4 = Portfolio / developer experience
+
+## Implementation Plan (backend)
+
+| Requirement / Task | Current Status | Priority | Files to Edit/Create | Dependencies | Implementation Notes | Verification Steps | Definition of Done |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Mongo replica set reliability | Partially done: `docker/mongo-init.js` mounted; compose healthchecks; app connect retries/waits for PRIMARY. | P0 | `docker-compose.yml`, `server/src/infra/mongo.ts`, `server/Dockerfile` | Mongo image, docker-compose | Keep RS init; ensure app refuses to start until PRIMARY reachable; document health expectations. | `docker compose up`; app boots without manual `rs.initiate`; order creation uses transaction without errors. | RS auto-inits; healthcheck waits for PRIMARY; app boot reliable; transactions succeed. |
+| Global error handling & requestId correlation | Implemented in code/tests/docs: standardized error body with requestId; requestId logger child; OpenAPI includes error schema examples. | P0 | `server/src/middlewares/errorHandler.ts`, `server/src/middlewares/notFound.ts`, `server/src/middlewares/auth.ts`, `server/src/utils/apiResponse.ts`, `server/src/middlewares/requestId.ts`, `server/tests/*`, `src/docs/openapi.json`, `README.md` | None | Keep the error shape stable for clients and reuse in future routes. | Run unit tests; curl 404/validation shows requestId; Swagger displays error schema. | Error format stable in code/docs; requestId present in responses. |
+| Auth/token hardening | Implemented for current release scope: jose JWTs with iss/aud/nbf, JTI, blacklist, rotation, zxcvbn, optional HIBP check, login rate-limit, HIBP tests. | P0 | `server/src/services/authService.ts`, `server/src/validators/auth.ts`, `server/src/config.ts`, `server/src/utils/passwordBreach.ts`, `server/tests/auth*.test.ts` | Redis; optional HIBP API | Remaining auth test depth (reuse/blacklist integration) moves to release-readiness test work rather than P0 code changes. | `npm test`; simulate breached password and strict HIBP outage; login/logout/refresh smoke test. | Strong + breach-checked passwords available; config flags documented; core auth tests updated. |
+| Payment security/completeness | Implemented for PayWay P0 path: secret validation, standardized signature errors, idempotency TTL config, webhook logging, focused webhook tests. Stripe verification remains in code but lacks dedicated tests. | P0 | `server/src/controllers/paymentController.ts`, `server/src/services/paymentService.ts`, `server/src/services/paymentProviders/PayWayProvider.ts`, `server/src/config.ts`, `server/tests/payment*.test.ts` | Stripe/PayWay secrets; axios/stripe mocks | Keep Stripe webhook test coverage as part of broader integration/payment test work; current P0 closes PayWay replay/spoof gap. | `npm test` payment suite; replay webhook ignored; invalid signature rejected; TTL config observed in spy assertions. | PayWay webhook path verified and configurable; no inconsistent error body on signature failures. |
+| CI/CD & lint/format | Implemented: GitHub Actions workflow added for lint/test/build/docker with lockfile install (`npm ci`). | P1 | `.github/workflows/ci.yml`, `server/eslint.config.js`, `server/.prettierrc`, `server/package.json` scripts | Node/npm | Workflow runs `npm ci`, `npm run lint`, `npm test`, `npm run build`, docker build. | Local `npm run lint` & `npm test`; GH workflow green. | CI present and green; lint/format enforced. |
+| Dependency lockfile alignment | Not started; package-lock not regenerated after adding jose/stripe/zxcvbn/eslint deps. | P1 | `server/package-lock.json` | Node/npm | Regenerate lockfile with `npm install`/`npm ci`; commit; keep in sync with package.json. | Clean install from lockfile succeeds; no missing modules. | package-lock up to date and committed. |
+| Container & deployment hardening | Implemented: Dockerfile uses dedicated build/prod-deps/runtime stages, production-only deps, and non-root runtime user. | P1 | `server/Dockerfile`, `docker-compose.yml` | node:alpine | Multi-stage build, `npm ci --omit=dev`, run as non-root, smaller image, server healthcheck. | `docker build`; `docker compose up` healthchecks green; image size reduced. | Hardened prod image; healthchecks in compose; non-root runtime. |
+| Integration test suite | Implemented: integration suite uses `supertest` + `mongodb-memory-server` (`MongoMemoryReplSet`) for auth/cart/order/payment flow, RBAC, and cart 404 semantics. | P1 | `server/tests/integration/*`, `server/tests/setupEnv.ts` | supertest, mongodb-memory-server, jest | App factory; memory Mongo; mock Stripe/PayWay; cover auth→cart→order→payment; RBAC. | `npm test` integration suite; isolated DB per run. | Happy-path + RBAC flows passing in integration tests. |
+| 404 correctness | Implemented for cart finalization: get/add are create-on-miss; update/remove/clear return `CART_NOT_FOUND` on missing cart; remove returns `ITEM_NOT_FOUND` when cart exists but item is absent. | P1 | `server/src/controllers/cartController.ts`, `server/src/services/cartService.ts`, `server/src/repositories/cartRepo.ts`, tests, docs | Auth middleware | Decide/document cart get/add semantics; ensure non-create ops 404; update tests. | `npm test` cart + integration suite. | All non-create operations 404 on missing resources; behavior documented. |
+| API documentation | Minimal static OpenAPI. | P2 | `server/src/docs/openapi.json`, codegen pipeline | zod-to-openapi | Generate/expand schemas, request/response, errors, securitySchemes; publish via Swagger UI. | Validate OpenAPI; load Swagger. | Docs cover all endpoints with schemas/examples/auth. |
+| Observability & operations | Implemented: `/metrics` Prometheus endpoint, env-driven `LOG_LEVEL`, requestId propagated to logs and error responses, docs updated. | P2 | `server/src/app.ts`, `server/src/config.ts`, `server/src/infra/metrics.ts`, `server/src/utils/logger.ts`, `server/src/middlewares/*`, docs/tests | None | `/metrics` Prometheus; env-driven log level; requestId correlation in logs and errors. | `curl /metrics`; call a failing route with `x-request-id`; inspect logs/response. | Metrics exposed; log level configurable; requestId correlation and docs in place. |
+| Data validation & integrity | Partial: password regex. Missing phone/country validation, unique slug enforcement, deviceId middleware reuse. | P2 | `server/src/validators/order.ts`, `server/src/validators/catalog.ts`, `server/src/services/catalogService.ts`, `server/src/middlewares` | None | Add phone regex/country; enforce unique slug pre-check; factor deviceId middleware for reuse. | Unit tests for validators/service. | Validation rules enforced; slug uniqueness guaranteed; tests updated. |
+| Security enhancements (email verify, TOTP, reset, audit) | Not started | P3 | new modules under `server/src/services`, `server/src/routes`, `server/src/models` | mail provider, otp lib | Design minimal flows; add audit logging hooks for admin/auth actions. | Tests per flow. | Password reset + email verify MVP, or clearly deferred with stubs and docs. |
+| Performance & caching | Not started | P3 | `server/src/repositories/productRepo.ts`, `server/src/infra/redis.ts` | Redis decision | Review indexes; optional caching for product/category lists; cursor pagination consistency. | Bench/unit tests; feature flag. | Caching behind config flag; indexes reviewed. |
+| Portfolio polish | Not started | P4 | `README.md`, `server/src/scripts/seed.ts`, diagrams | None | Add sandbox/demo payment mode, richer seed, architecture diagram. | Manual review. | Docs/seed/demo mode ready. |
+
+## Execution Phases
+- **Phase 1 — Production blockers (P0):** Mongo RS reliability; Global error handling & requestId; Auth/token hardening; Payment security/completeness.
+- **Phase 2 — Release readiness (P1):** CI/CD & lint/format; Container hardening; Integration tests; 404 correctness (finalize cart semantics).
+- **Phase 3 — Observability & documentation (P2):** API documentation; Observability & operations; Data validation & integrity.
+- **Phase 4 — System improvements (P3):** Security enhancements; Performance & caching.
+- **Phase 5 — Portfolio improvements (P4):** Portfolio polish.

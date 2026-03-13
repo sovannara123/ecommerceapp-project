@@ -1,0 +1,62 @@
+# ═══════════════════════════════════════
+# Environment & Secrets
+# ═══════════════════════════════════════
+**/.env
+**/.env.local
+**/.env.*.local
+**/.env.development
+**/.env.production
+**/.env.staging
+!**/.env.example
+
+# ═══════════════════════════════════════
+# Dependencies
+# ═══════════════════════════════════════
+**/node_modules/
+**/.pnp
+**/.pnp.js
+
+# ═══════════════════════════════════════
+# Build Outputs
+# ═══════════════════════════════════════
+**/.next/
+**/dist/
+**/build/
+**/.turbo/
+**/out/
+
+# ═══════════════════════════════════════
+# Flutter / Dart
+# ═══════════════════════════════════════
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/build/
+**/*.g.dart
+**/*.freezed.dart
+
+# ═══════════════════════════════════════
+# IDE
+# ═══════════════════════════════════════
+.idea/
+.vscode/settings.json
+.vscode/launch.json
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ═══════════════════════════════════════
+# OS
+# ═══════════════════════════════════════
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ═══════════════════════════════════════
+# Coverage & Testing
+# ═══════════════════════════════════════
+**/coverage/
+**/.nyc_output/
+**/lcov-report/

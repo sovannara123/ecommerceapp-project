@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/hooks/useinactivitytimeout.ts","./src/stores/authstore.ts","./src/ui/app.tsx","./src/ui/api.ts","./src/ui/pages/categoriespage.tsx","./src/ui/pages/dashboardpage.tsx","./src/ui/pages/loginpage.tsx","./src/ui/pages/orderspage.tsx","./src/ui/pages/productspage.tsx"],"errors":true,"version":"5.9.3"}
